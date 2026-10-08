@@ -1,0 +1,11 @@
+node_modules/
+.env
+
+dist/
+playwright-report/
+test-results/
+
+*.tar.gz
+*:Zone.Identifier
+
+/src/generated/prisma

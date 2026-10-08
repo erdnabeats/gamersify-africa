@@ -1,0 +1,1 @@
+[{"name":"daily-backup","cron":"15 2 * * *","handler":"dailyBackupHandler","timezone":"Africa/Lagos"}]

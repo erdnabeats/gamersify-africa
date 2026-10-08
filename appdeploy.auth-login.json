@@ -1,0 +1,14 @@
+{
+  "methods": ["google", "apple", "x", "email"],
+  "headline": "CODM Arena Admin",
+  "subtitle": "Authorized administrators only",
+  "style": {
+    "mode": "dark",
+    "accentColor": "#22d3ee",
+    "backgroundColor": "#07111f",
+    "panelColor": "#0f1d2e",
+    "textColor": "#f8fafc",
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "borderRadius": 14
+  }
+}

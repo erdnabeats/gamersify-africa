@@ -1,0 +1,107 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: gamersify-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: gamersify
+      POSTGRES_USER: gamersify
+      POSTGRES_PASSWORD: change-this-password
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gamersify -d gamersify"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: gamersify-redis
+    restart: unless-stopped
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  gamersify-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+
+    container_name: gamersify-api
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      STORAGE_ROOT: /app/storage
+      DATABASE_URL: postgresql://gamersify:change-this-password@postgres:5432/gamersify
+      REDIS_URL: redis://redis:6379
+
+    ports:
+      - "4000:4000"
+
+    volumes:
+      - gamersify_storage:/app/storage
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+
+  gamersify-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+
+    container_name: gamersify-web
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    depends_on:
+      gamersify-api:
+        condition: service_healthy
+
+
+volumes:
+  postgres_data:
+  redis_data:
+  gamersify_storage:

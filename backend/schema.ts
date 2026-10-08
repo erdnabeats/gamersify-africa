@@ -1,0 +1,43 @@
+export const TABLES = {
+  settings: 'codm_settings',
+  tiers: 'codm_tiers',
+  teams: 'codm_teams',
+  tournaments: 'codm_tournaments',
+  matches: 'codm_matches',
+  pointEvents: 'codm_point_events',
+  pointLedger: 'codm_point_ledger',
+  seasons: 'codm_seasons',
+  backupManifests: 'codm_backup_manifests',
+  adminUsers: 'codm_admin_users',
+  sessions: 'codm_sessions',
+  auditLogs: 'codm_audit_logs',
+  transferNews: 'codm_transfer_news',
+  referees: 'codm_referees',
+  disputes: 'codm_disputes',
+  sanctions: 'codm_sanctions',
+  sponsors: 'codm_sponsors',
+  prizePayouts: 'codm_prize_payouts',
+  notifications: 'codm_notifications',
+  players: 'codm_players',
+  refereeAssignments: 'codm_referee_assignments',
+} as const;
+
+export const DEFAULT_SETTINGS = {
+  tiers: [
+    { name: 'Tier 1', maxTeams: 10 },
+    { name: 'Tier 2', maxTeams: 15 },
+  ],
+  multipliers: { General: 1.5, 'Tier 2 Only': 1.0 },
+  points: {
+    Participation: 1,
+    'Round of 16': 1,
+    Quarterfinal: 1,
+    Semifinal: 1,
+    Final: 2,
+    Champion: 3,
+  },
+  calculationVersion: 1,
+  rankingTieBreakers: ['head_to_head', 'wins', 'best_placement', 'recent_performance', 'tournaments_played', 'alphabetical'],
+  maxPlayers: 5,
+  roster: { mainPlayersMin: 4, mainPlayersMax: 5, substitutesMax: 2 },
+};

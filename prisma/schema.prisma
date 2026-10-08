@@ -1,0 +1,494 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Setting {
+  id                 String   @id @default(cuid())
+  tiers              Json
+  multipliers        Json
+  points             Json
+  calculationVersion Int      @default(1)
+  rankingTieBreakers Json
+  maxPlayers         Int      @default(5)
+  roster             Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("codm_settings")
+}
+
+model Tier {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  maxTeams    Int
+  description String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  teams       Team[]
+
+  @@index([active])
+  @@map("codm_tiers")
+}
+
+model Team {
+  id                 String                   @id @default(cuid())
+  name               String
+  slug               String                   @unique
+  tierId             String
+  tierName           String
+  logoPath           String?
+  logoUrl            String?
+  region             String?
+  status             String                   @default("active")
+  socialLinks        Json?
+  points             Float                    @default(0)
+  verificationStatus String                   @default("unverified")
+  verificationReason String?
+  verifiedAt         DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  deletedAt          DateTime?
+  matchesA           Match[]                  @relation("TeamAMatches")
+  matchesB           Match[]                  @relation("TeamBMatches")
+  wins               Match[]                  @relation("MatchWinners")
+  players            Player[]
+  pointEvents        PointEvent[]
+  pointLedger        PointLedger[]
+  sanctions          Sanction[]
+  tier               Tier                     @relation(fields: [tierId], references: [id])
+  registrations      TournamentRegistration[]
+
+  @@index([tierId])
+  @@index([region])
+  @@index([status])
+  @@index([deletedAt])
+  @@map("codm_teams")
+}
+
+model Player {
+  id                 String    @id @default(cuid())
+  playerId           String    @unique
+  teamId             String?
+  teamName           String?
+  inGameName         String
+  realName           String?
+  role               String
+  country            String?
+  status             String    @default("active")
+  photoPath          String?
+  verificationStatus String    @default("unverified")
+  verificationReason String?
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  team               Team?     @relation(fields: [teamId], references: [id])
+
+  @@index([teamId])
+  @@index([inGameName])
+  @@index([status])
+  @@map("codm_players")
+}
+
+model Season {
+  id          String        @id @default(cuid())
+  name        String
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String        @default("draft")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+  pointEvents PointEvent[]
+  pointLedger PointLedger[]
+  tournaments Tournament[]
+
+  @@index([status])
+  @@map("codm_seasons")
+}
+
+model Tournament {
+  id                   String                   @id @default(cuid())
+  name                 String
+  type                 String
+  format               String
+  bracketSize          Int
+  date                 DateTime?
+  timezone             String                   @default("Africa/Lagos")
+  registrationDeadline DateTime?
+  checkInWindow        String?
+  maxTeams             Int
+  status               String                   @default("draft")
+  rules                String?
+  prizePool            String?
+  mapsModes            String?
+  multiplier           Float                    @default(1)
+  seeding              String                   @default("random")
+  participants         String[]
+  seasonId             String?
+  pointsFinalized      Boolean                  @default(false)
+  bracketGeneratedAt   DateTime?
+  bracketVersion       Int                      @default(0)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  deletedAt            DateTime?
+  disputes             Dispute[]
+  matches              Match[]
+  pointEvents          PointEvent[]
+  pointLedger          PointLedger[]
+  payouts              PrizePayout[]
+  registrations        TournamentRegistration[]
+  season               Season?                  @relation(fields: [seasonId], references: [id])
+
+  @@index([seasonId])
+  @@index([status])
+  @@index([type])
+  @@index([date])
+  @@map("codm_tournaments")
+}
+
+model TournamentRegistration {
+  id           String     @id @default(cuid())
+  tournamentId String
+  teamId       String
+  status       String     @default("registered")
+  checkedIn    Boolean    @default(false)
+  checkedInAt  DateTime?
+  seed         Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, teamId])
+  @@index([teamId])
+  @@index([status])
+  @@map("codm_tournament_registrations")
+}
+
+model Match {
+  id               String     @id @default(cuid())
+  tournamentId     String
+  bracket          String     @default("winners")
+  round            Int
+  roundName        String
+  slot             Int
+  matchNumber      String
+  matchKey         String?
+  teamAId          String?
+  teamBId          String?
+  teamAName        String?
+  teamBName        String?
+  scoreA           Int        @default(0)
+  scoreB           Int        @default(0)
+  winnerId         String?
+  status           String     @default("scheduled")
+  bestOf           Int        @default(3)
+  lobbyId          String?
+  lobbyPassword    String?
+  scheduledAt      DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  evidenceUrl      String?
+  evidenceAddedAt  DateTime?
+  evidenceAddedBy  String?
+  refereeId        String?
+  winnerTargetKey  String?
+  winnerTargetSlot Int?
+  loserTargetKey   String?
+  loserTargetSlot  Int?
+  sourceType       String?
+  sourceRound      Int?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+  disputes         Dispute[]
+  teamA            Team?      @relation("TeamAMatches", fields: [teamAId], references: [id])
+  teamB            Team?      @relation("TeamBMatches", fields: [teamBId], references: [id])
+  tournament       Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  winner           Team?      @relation("MatchWinners", fields: [winnerId], references: [id])
+
+  @@index([tournamentId])
+  @@index([teamAId])
+  @@index([teamBId])
+  @@index([winnerId])
+  @@index([status])
+  @@index([matchKey])
+  @@map("codm_matches")
+}
+
+model PointEvent {
+  id                 String     @id @default(cuid())
+  tournamentId       String
+  teamId             String
+  teamName           String
+  placement          String
+  basePoints         Float
+  multiplier         Float
+  points             Float
+  seasonId           String?
+  calculationVersion Int
+  createdAt          DateTime   @default(now())
+  season             Season?    @relation(fields: [seasonId], references: [id])
+  team               Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament         Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([seasonId])
+  @@map("codm_point_events")
+}
+
+model PointLedger {
+  id                 String     @id @default(cuid())
+  tournamentId       String
+  teamId             String
+  teamName           String
+  placement          String
+  basePoints         Float
+  multiplier         Float
+  points             Float
+  seasonId           String?
+  calculationVersion Int
+  createdBy          String?
+  createdAt          DateTime   @default(now())
+  reversedAt         DateTime?
+  reversalReason     String?
+  season             Season?    @relation(fields: [seasonId], references: [id])
+  team               Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournament         Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([seasonId])
+  @@index([reversedAt])
+  @@map("codm_point_ledger")
+}
+
+model AdminUser {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String?
+  name              String?
+  role              String
+  teamId            String?
+  requestedTeamName String?
+  status            String?
+  message           String?
+  active            Boolean   @default(true)
+  scope             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
+
+  @@index([role])
+  @@index([teamId])
+  @@index([active])
+  @@map("codm_admin_users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("codm_sessions")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  entity     String
+  entityId   String
+  adminId    String
+  adminEmail String
+  reason     String?
+  timestamp  DateTime @default(now())
+
+  @@index([entity])
+  @@index([entityId])
+  @@index([adminId])
+  @@index([timestamp])
+  @@map("codm_audit_logs")
+}
+
+model BackupManifest {
+  id          String   @id @default(cuid())
+  path        String
+  version     Int
+  tableCounts Json?
+  verified    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("codm_backup_manifests")
+}
+
+model TransferNews {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String?   @unique
+  content     String
+  imageUrl    String?
+  status      String    @default("draft")
+  publishedAt DateTime?
+  author      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([status])
+  @@index([publishedAt])
+  @@map("codm_transfer_news")
+}
+
+model Referee {
+  id          String              @id @default(cuid())
+  name        String
+  email       String              @unique
+  phone       String?
+  status      String              @default("active")
+  scope       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  deletedAt   DateTime?
+  assignments RefereeAssignment[]
+
+  @@index([status])
+  @@map("codm_referees")
+}
+
+model RefereeAssignment {
+  id          String    @id @default(cuid())
+  refereeId   String
+  matchId     String
+  role        String    @default("referee")
+  status      String    @default("assigned")
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+  referee     Referee   @relation(fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@unique([refereeId, matchId])
+  @@index([matchId])
+  @@map("codm_referee_assignments")
+}
+
+model Dispute {
+  id           String     @id @default(cuid())
+  matchId      String
+  tournamentId String
+  teamId       String
+  raisedBy     String
+  reason       String
+  evidenceUrl  String?
+  status       String     @default("open")
+  resolution   String?
+  resolvedBy   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+  match        Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([status])
+  @@map("codm_disputes")
+}
+
+model Sanction {
+  id          String    @id @default(cuid())
+  subjectType String
+  subjectId   String
+  subjectName String?
+  teamId      String?
+  teamName    String?
+  type        String
+  status      String    @default("active")
+  reason      String
+  issuedAt    DateTime  @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  team        Team?     @relation(fields: [teamId], references: [id])
+
+  @@index([subjectType, subjectId])
+  @@index([teamId])
+  @@index([status])
+  @@map("codm_sanctions")
+}
+
+model Sponsor {
+  id          String    @id @default(cuid())
+  name        String
+  tier        String    @default("Partner")
+  logoUrl     String?
+  website     String?
+  description String?
+  priority    Int       @default(0)
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([active])
+  @@index([priority])
+  @@map("codm_sponsors")
+}
+
+model PrizePayout {
+  id             String     @id @default(cuid())
+  tournamentId   String
+  tournamentName String
+  teamId         String
+  teamName       String
+  placement      String?
+  amount         Float
+  currency       String     @default("NGN")
+  status         String     @default("pending")
+  method         String     @default("bank_transfer")
+  reference      String?
+  notes          String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([status])
+  @@map("codm_prize_payouts")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String?
+  email     String?
+  type      String
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+
+  @@index([userId])
+  @@index([email])
+  @@index([readAt])
+  @@map("codm_notifications")
+}

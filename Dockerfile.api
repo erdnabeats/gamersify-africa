@@ -1,0 +1,26 @@
+FROM node:24-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=4000
+
+COPY package*.json ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+RUN npm ci --include=dev
+
+# Prisma config requires DATABASE_URL during generate,
+# but generate does not need a live database connection.
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+
+RUN npx prisma generate
+
+COPY backend ./backend
+
+RUN mkdir -p /app/storage
+
+EXPOSE 4000
+
+CMD ["npm", "run", "start:api"]
